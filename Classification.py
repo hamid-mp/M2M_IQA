@@ -26,9 +26,12 @@ class Classification():
         self.data = Data_Loader
 
 
-    
+
+
+
+
     def Fine_Tune(self):
-        
+
         model_name = configs['Training']['model']
 
         if model_name == 'vgg16':
@@ -43,6 +46,12 @@ class Classification():
         else:
             raise ValueError
 
+        epochs = configs['Training']['Epochs']
+
+
+        for epoch in range(epochs):
+            for x, y in self.data:
+                pass
         
             
 
