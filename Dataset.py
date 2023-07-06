@@ -4,10 +4,10 @@ import torch.nn as nn
 from torchvision import datasets
 from torch.utils.data import Dataset, random_split
 
-data_path = Path(__file__).parent.resolve() / 'Dataset' / 'DogBreed'
 
 
-class Dataset():
+
+class DogBreed():
 
     def __init__(self, data_path):
         
@@ -22,8 +22,8 @@ class Dataset():
         return data
 
 
-    def data_split(self, **kwargs):
-        #assert sum(kwargs.values()) == 1, 'Wrong Portion of Images for Train/Test/Validation Data'
+    def data_split(self, transforms=None, **kwargs):
+        assert sum(kwargs.values()) > 1, 'Wrong Portion of Images for Train/Test/Validation Data'
         #assert kwargs.keys() in ['train', 'test', 'validation'], "input Must be [train, test, validation]"
         dataset = self.load_data()
         l = len(dataset)
