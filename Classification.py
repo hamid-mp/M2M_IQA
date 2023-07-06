@@ -23,9 +23,9 @@ class Classification():
     def __init__(self, Data_Loader=None, phase='Train'):
 
         assert isinstance(Data_Loader, DataLoader), 'Data must be a DataLoader object'
+        
         self.data = Data_Loader
-
-
+        self.model = None
 
 
 
