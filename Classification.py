@@ -49,6 +49,7 @@ class Classification():
         we should add following:
         - save/load model during training
         - add a stop critria
+        - use dataloader not original dataset format
         '''
         train_set, test_set, valid_set = DogBreed(data_path).data_split(train=train_size, test=test_size)
         
