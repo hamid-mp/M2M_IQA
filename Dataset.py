@@ -23,7 +23,7 @@ class DogBreed():
 
 
     def data_split(self, transforms=None, **kwargs):
-        assert sum(kwargs.values()) > 1, 'Wrong Portion of Images for Train/Test/Validation Data'
+        assert sum(kwargs.values()) <= 1, 'Wrong Portion of Images for Train/Test/Validation Data'
         #assert kwargs.keys() in ['train', 'test', 'validation'], "input Must be [train, test, validation]"
         dataset = self.load_data()
         l = len(dataset)

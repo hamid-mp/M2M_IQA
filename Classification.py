@@ -1,4 +1,5 @@
 import torch
+import matplotlib.pyplot as plt
 import torch.nn as nn
 import torchvision
 from Dataset import DogBreed
@@ -10,8 +11,7 @@ from pathlib import Path
 path = Path.cwd().joinpath('Configs.ini')
 configs = ConfigParser(  )
 configs.read(path)
-
-
+train_config = configs.items('Training')
 
 #(configs['Training']['Epochs']))
 
@@ -27,45 +27,94 @@ class Classification():
         
         self.data = Data_Loader
         
-        model_name = configs['Training']['model']
+        model_name = train_config['model']
 
         if model_name == 'vgg16':
             self.model = vgg16(pretrained=False)
-            self.model.classifier[-1] = nn.Linear(4096, int(configs['Training']['num_classes']), bias=True)
+            self.model.classifier[-1] = nn.Linear(4096, int(train_config['num_classes']), bias=True)
 
         elif model_name == 'resnet50': #fc
             self.model = resnet50(pretrained=False)
-            self.model.fc  = nn.Linear(2048, int(configs['Training']['num_classes']), bias=True)
+            self.model.fc  = nn.Linear(2048, int(train_config['num_classes']), bias=True)
+
         elif model_name == 'inception_v3':
             self.model = inception_v3(pretrained=False)
-            self.model.fc = nn.Linear(2048, int(configs['Training']['num_classes']), bias=True)
+            self.model.fc = nn.Linear(2048, int(train_config['num_classes']), bias=True)
         else:
             raise ValueError
 
 
     def train(self, train_size=0.85, test_size=0.1):
-
-        train_set, test_set, valid_set = DogBreed(data_path).data_path(train=train_size, test=test_size)
-
-
-        pass
-    def Fine_Tune(self):
-
-
-
-        epochs = configs['Training']['Epochs']
-
-
-        for epoch in range(epochs):
-            for x, y in self.data:
-                pass
+        '''
+        we should add following:
+        - save/load model during training
+        - add a stop critria
+        '''
+        train_set, test_set, valid_set = DogBreed(data_path).data_split(train=train_size, test=test_size)
         
-            
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.model = self.model.to(device)
+
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=float(train_config['learning-rate']))
+
+        train_loss_values = []
+        valid_loss_values = []
+        epoch_count = []
+
+        for epoch in range(int(train_config['Epochs'])):
+            self.model.train()
+            train_loss = 0 # calculate training loss for each epoch
+            for i, (x, y) in enumerate(train_set):
+                x, y = x.to(device), y.to(device)
+                y_pred = self.model(x)
+
+                loss = criterion(y_pred, y)
+
+                train_loss += loss # aggregate batch losses
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+            self.model.eval()
+            with torch.no_grad():
+                validation_loss = 0
+                for x_val, y_val in valid_set:
+
+                    x_val, y_val = x_val.to(device), y_val.to(device)
+                    
+                    y_pred = self.model(x_val)
+                    loss = criterion(y_pred, y_val)
+                    validation_loss += loss
+            if epoch % 5 == 0:
+                epoch_count.append(epoch)
+                train_loss_values.append(train_loss.detach().numpy())
+                valid_loss_values.append(validation_loss.detach().numpy())
+                print(f"Epoch: {epoch} | MAE Train Loss: {train_loss} | MAE Test Loss: {validation_loss} ")
+
+
+
+    def test(self, model_path):
+        '''
+        This method should be used to get probability output of trained models (get probability map of distorted model and pristine model)
+        '''
+        pass
+
+    def training_curve(self, epoch_count:list, train_loss:list, valid_loss:list):
+        # Plot the loss curves
+        plt.plot(epoch_count, train_loss, label="Train loss")
+        plt.plot(epoch_count, valid_loss, label="Test loss")
+        plt.title("Training and test loss curves")
+        plt.ylabel("Loss")
+        plt.xlabel("Epochs")
+        plt.legend();
+                    
 
         
 if __name__ == '__main__':
     dataflow = Classification()
-    print(dataflow.model.fc)
 
+    dataflow.train()
 
 
