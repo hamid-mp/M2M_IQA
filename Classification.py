@@ -75,10 +75,10 @@ class Classification():
         valid_loss_values = []
         epoch_count = []
         least_val_loss = math.inf
-        for epoch in range(int(train_config['Epochs'])):
+        for i, epoch in enumerate(range(int(train_config['Epochs']))):
             self.model.train()
             train_loss = 0 # calculate training loss for each epoch
-            for i, (x, y) in enumerate(train_set):
+            for (x, y) in (train_set):
                 x, y = x.to(device), y.to(device)
                 y_pred = self.model(x)
 
