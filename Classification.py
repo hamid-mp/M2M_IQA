@@ -7,7 +7,7 @@ from torchvision.models import vgg16, resnet50, inception_v3
 from torch.utils.data import DataLoader
 from configparser import ConfigParser
 from pathlib import Path
-
+import math
 path = Path.cwd().joinpath('Configs.ini')
 configs = ConfigParser(  )
 configs.read(path)
@@ -18,7 +18,7 @@ train_config = configs.items('Training')
 
 data_path = Path(__file__).parent.resolve() / 'Dataset' / 'DogBreed'
 
-
+(Path(__file__).parent / 'model').mkdir(exist_ok=True, parents=True)
 class Classification():
 
     def __init__(self, Data_Loader=None, phase='Train'):
@@ -43,6 +43,15 @@ class Classification():
         else:
             raise ValueError
 
+    def early_stopping(train_loss, validation_loss, min_delta, tolerance):
+
+        counter = 0
+        val = validation_loss.detach().numpy()
+        train = train_loss.detach().numpy()
+        if (val - train) > min_delta:
+            counter +=1
+            if counter >= tolerance:
+                return True
 
     def train(self, train_size=0.85, test_size=0.1):
         '''
@@ -53,6 +62,9 @@ class Classification():
         '''
         train_set, test_set, valid_set = DogBreed(data_path).data_split(train=train_size, test=test_size)
         
+        train_set = DataLoader(train_set, batch_size=train_config['Batch-size'], shuffle=True)
+        valid_set = DataLoader(valid_set, batch_size=train_config['Batch-size'], shuffle=False)
+
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model = self.model.to(device)
 
@@ -62,7 +74,7 @@ class Classification():
         train_loss_values = []
         valid_loss_values = []
         epoch_count = []
-
+        least_val_loss = math.inf
         for epoch in range(int(train_config['Epochs'])):
             self.model.train()
             train_loss = 0 # calculate training loss for each epoch
@@ -94,7 +106,18 @@ class Classification():
                 valid_loss_values.append(validation_loss.detach().numpy())
                 print(f"Epoch: {epoch} | MAE Train Loss: {train_loss} | MAE Test Loss: {validation_loss} ")
 
+            if validation_loss < least_val_loss:
+                least_val_loss = validation_loss
+                torch.save(self.model.state_dict(), (Path(__file__).parent / 'model' / 'weight.pt').resolve())
 
+            if self.early_stopping(train_loss,
+             validation_loss,
+             min_delta=float(train_config['early_stop_min_delta']),
+             tolerance = int(train_config['early_stop_TOL'])):
+                print("We are at epoch:", i)
+                break
+
+                
 
     def test(self, model_path):
         '''
