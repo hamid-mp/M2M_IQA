@@ -64,7 +64,3 @@ def parse_converted(temp_path='/home/user/hamid/vafa/compression/code/result/jpe
 
 
 
-parse_converted()
-#all2one('/home/user/hamid/vafa/compression/Data/DogBreed/edited', '/home/user/hamid/vafa/compression/Data/temp')
-
-
