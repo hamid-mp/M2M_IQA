@@ -1,6 +1,7 @@
 import argparse
 import concurrent.futures
 import errno
+import multiprocessing
 import os
 import subprocess
 import sys
@@ -194,26 +195,32 @@ def run_cmd(cmd, image_path):
 
 
 
+def code_all_worker(args):
+    in_path, out_path, format, out_format, coder_function, file, *extra_args = args
+
+    input_file_path = os.path.join(in_path, file)
+    w, h = input_file_path.split('_wh_')[1].split('.')[0].split('_')
+    output_file_path = os.path.join(out_path, os.path.splitext(file)[0] + '.' + out_format)
+
+    if coder_function == vvc_encode or coder_function == hevc_encode:
+        coder_function(input_file_path, output_file_path, *extra_args, int(w), int(h))
+    else:
+        coder_function(input_file_path, output_file_path, *extra_args)
 
 def code_all(in_path, out_path, format, out_format, coder_function, *args):
     mkdir_p(out_path)
     files = [f for f in os.listdir(in_path) if f.endswith(format)]
 
-    for file in files:
-        input_file_path = os.path.join(in_path, file)
+    # Create a list of arguments for each worker process
+    worker_args_list = [(in_path, out_path, format, out_format, coder_function, file, *args) for file in files]
 
-        w, h = input_file_path.split('_wh_')[1].split('.')[0].split('_')
-        output_file_path = os.path.join(out_path,
-                                    os.path.splitext(file)[0]+'.'+ out_format)
+    # Number of parallel processes to run
+    num_processes = multiprocessing.cpu_count()
 
-        if coder_function == vvc_encode:
-            coder_function(input_file_path, output_file_path, *args, int(w), int(h))
-        elif coder_function == hevc_encode:
-
-
-            coder_function(input_file_path, output_file_path, *args, int(w), int(h))
-        else:
-            coder_function(input_file_path, output_file_path, *args)
+    # Create a pool of processes
+    with multiprocessing.Pool(num_processes) as pool:
+        # Map the code_all_worker function to the list of worker arguments
+        pool.map(code_all_worker, worker_args_list)
 
 def jpeg_pipline(FLAGS):
     pnm_files_path = os.path.join(FLAGS.output,'jpeg','pnm')
@@ -298,3 +305,4 @@ if __name__ == "__main__":
 
 
 
+    
